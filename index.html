@@ -409,6 +409,25 @@
       content: "";
     }
 
+    .my-location-marker {
+      position: relative;
+      display: block;
+      width: 22px;
+      height: 22px;
+      border: 3px solid #ffffff;
+      border-radius: 999px;
+      background: #2563eb;
+      box-shadow: 0 0 0 8px rgba(37, 99, 235, 0.18), 0 8px 22px rgba(15, 23, 42, 0.28);
+    }
+
+    .my-location-marker::after {
+      position: absolute;
+      inset: 5px;
+      border-radius: 999px;
+      background: #ffffff;
+      content: "";
+    }
+
     .repair-map-marker {
       display: grid;
       place-items: center;
@@ -619,6 +638,16 @@
     popupAnchor: [0, -26]
   });
   const marker = L.marker(initialPosition, {icon: selectedLocationIcon}).addTo(map);
+  const myLocationIcon = L.divIcon({
+    className: '',
+    html: '<span class="my-location-marker" aria-hidden="true"></span>',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+    popupAnchor: [0, -12]
+  });
+  let myLocationMarker = null;
+  let myLocationPosition = null;
+  let myLocationWatchId = null;
   const repairIcon = L.divIcon({
     className: '',
     html: '<span class="repair-map-marker">S</span>',
@@ -683,6 +712,92 @@
     updateSelectedLocation(lat, lng, label);
     statusEl.classList.remove('error');
     statusEl.textContent = 'Dang hien thi: ' + label + '.';
+  }
+
+  function updateMyLocation(lat, lng, openPopup) {
+    const nextPosition = [lat, lng];
+    myLocationPosition = nextPosition;
+
+    if (!myLocationMarker) {
+      myLocationMarker = L.marker(nextPosition, {icon: myLocationIcon})
+              .addTo(map)
+              .bindPopup('<p class="popup-title">Vi tri cua toi</p>');
+    } else {
+      myLocationMarker.setLatLng(nextPosition);
+    }
+
+    if (openPopup) {
+      myLocationMarker.openPopup();
+    }
+  }
+
+  function handleMyLocationError(showError) {
+    if (!showError) {
+      return;
+    }
+
+    statusEl.classList.add('error');
+    statusEl.textContent = 'Khong the lay vi tri. Hay kiem tra quyen truy cap vi tri cua trinh duyet.';
+  }
+
+  function requestMyLocation(options) {
+    const shouldPan = options && options.pan;
+    const shouldOpenPopup = options && options.openPopup;
+    const showError = !options || options.showError !== false;
+
+    if (!navigator.geolocation) {
+      if (showError) {
+        statusEl.classList.add('error');
+        statusEl.textContent = 'Trinh duyet khong ho tro lay vi tri hien tai.';
+      }
+      return;
+    }
+
+    if (shouldPan && myLocationPosition) {
+      map.setView(myLocationPosition, 15);
+      if (myLocationMarker && shouldOpenPopup) {
+        myLocationMarker.openPopup();
+      }
+      statusEl.classList.remove('error');
+      statusEl.textContent = 'Dang hien thi vi tri cua toi.';
+      return;
+    }
+
+    if (showError) {
+      statusEl.classList.remove('error');
+      statusEl.textContent = 'Dang lay vi tri hien tai...';
+    }
+
+    navigator.geolocation.getCurrentPosition((position) => {
+      updateMyLocation(position.coords.latitude, position.coords.longitude, shouldOpenPopup);
+      if (shouldPan) {
+        map.setView(myLocationPosition, 15);
+      }
+      if (showError) {
+        statusEl.classList.remove('error');
+        statusEl.textContent = 'Dang hien thi vi tri cua toi.';
+      }
+    }, () => handleMyLocationError(showError), {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 30000
+    });
+  }
+
+  function startMyLocationWatch() {
+    if (!navigator.geolocation || myLocationWatchId !== null) {
+      return;
+    }
+
+    myLocationWatchId = navigator.geolocation.watchPosition((position) => {
+      updateMyLocation(position.coords.latitude, position.coords.longitude, false);
+    }, () => {
+      myLocationWatchId = null;
+    }, {
+      enableHighAccuracy: true,
+      maximumAge: 15000,
+      timeout: 20000
+    });
   }
 
   function moveToRepairPlace(place) {
@@ -752,26 +867,12 @@
   document.getElementById('zoomOut').addEventListener('click', () => map.zoomOut());
 
   document.getElementById('locateMe').addEventListener('click', () => {
-    if (!navigator.geolocation) {
-      statusEl.classList.add('error');
-      statusEl.textContent = 'Trinh duyet khong ho tro lay vi tri hien tai.';
-      return;
-    }
-
-    statusEl.classList.remove('error');
-    statusEl.textContent = 'Dang lay vi tri hien tai...';
-
-    navigator.geolocation.getCurrentPosition((position) => {
-      moveToLocation(
-              position.coords.latitude,
-              position.coords.longitude,
-              15,
-              'Vi tri cua toi'
-      );
-    }, () => {
-      statusEl.classList.add('error');
-      statusEl.textContent = 'Khong the lay vi tri. Hay kiem tra quyen truy cap vi tri cua trinh duyet.';
+    requestMyLocation({
+      pan: true,
+      openPopup: true,
+      showError: true
     });
+    startMyLocationWatch();
   });
 
   async function searchLocation() {
@@ -816,6 +917,12 @@
 
   updateSelectedLocation(initialPosition[0], initialPosition[1], 'Hoan Kiem, Ha Noi');
   renderRepairPlaces();
+  requestMyLocation({
+    pan: false,
+    openPopup: false,
+    showError: false
+  });
+  startMyLocationWatch();
 </script>
 </body>
 </html>
