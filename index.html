@@ -231,6 +231,23 @@
       line-height: 1.6;
     }
 
+    .route-button {
+      width: 100%;
+      min-height: 40px;
+    }
+
+    .route-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .route-summary {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
     .map-wrap {
       position: relative;
       min-width: 0;
@@ -507,6 +524,8 @@
     <section class="location-card" aria-label="Toa do hien tai">
       <h2>Vi tri dang chon</h2>
       <p id="coordinates" class="coordinates">Chua chon vi tri.</p>
+      <button id="routeButton" class="route-button" type="button" disabled>Chi duong</button>
+      <p id="routeSummary" class="route-summary"></p>
     </section>
   </aside>
 
@@ -555,6 +574,8 @@
   const coordinatesEl = document.getElementById('coordinates');
   const searchInput = document.getElementById('searchInput');
   const repairListEl = document.getElementById('repairList');
+  const routeButton = document.getElementById('routeButton');
+  const routeSummaryEl = document.getElementById('routeSummary');
   const selectedLocationIcon = L.divIcon({
     className: '',
     html: '<span class="selected-location-marker" aria-hidden="true"></span>',
@@ -563,6 +584,8 @@
     popupAnchor: [0, -26]
   });
   let selectedLocationMarker = null;
+  let selectedLocationPosition = null;
+  let routeLayer = null;
   const myLocationIcon = L.divIcon({
     className: '',
     html: '<span class="my-location-marker" aria-hidden="true"></span>',
@@ -624,6 +647,7 @@
 
   function updateSelectedLocation(lat, lng, label) {
     const nextPosition = [lat, lng];
+    selectedLocationPosition = nextPosition;
 
     if (!selectedLocationMarker) {
       selectedLocationMarker = L.marker(nextPosition, {icon: selectedLocationIcon}).addTo(map);
@@ -636,6 +660,16 @@
             '<p class="popup-text">Lat: ' + lat.toFixed(5) + '<br>Lng: ' + lng.toFixed(5) + '</p>'
     ).openPopup();
     coordinatesEl.innerHTML = 'Lat: ' + lat.toFixed(5) + '<br>Lng: ' + lng.toFixed(5);
+    routeButton.disabled = false;
+    clearRoute();
+  }
+
+  function clearRoute() {
+    if (routeLayer) {
+      map.removeLayer(routeLayer);
+      routeLayer = null;
+    }
+    routeSummaryEl.textContent = '';
   }
 
   function moveToLocation(lat, lng, zoom, label) {
@@ -662,6 +696,29 @@
     if (openPopup) {
       myLocationMarker.openPopup();
     }
+  }
+
+  function getMyLocation() {
+    return new Promise((resolve, reject) => {
+      if (myLocationPosition) {
+        resolve(myLocationPosition);
+        return;
+      }
+
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation is not supported.'));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition((position) => {
+        updateMyLocation(position.coords.latitude, position.coords.longitude, false);
+        resolve(myLocationPosition);
+      }, reject, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 30000
+      });
+    });
   }
 
   function centerMyLocation() {
@@ -754,6 +811,71 @@
     statusEl.textContent = place.name + ' - SDT: ' + place.phone + '.';
   }
 
+  function formatDistance(meters) {
+    if (meters >= 1000) {
+      return (meters / 1000).toFixed(1) + ' km';
+    }
+    return Math.round(meters) + ' m';
+  }
+
+  function formatDuration(seconds) {
+    const minutes = Math.max(1, Math.round(seconds / 60));
+    if (minutes >= 60) {
+      const hours = Math.floor(minutes / 60);
+      const restMinutes = minutes % 60;
+      return hours + ' gio ' + restMinutes + ' phut';
+    }
+    return minutes + ' phut';
+  }
+
+  async function showRouteToSelectedLocation() {
+    if (!selectedLocationPosition) {
+      statusEl.classList.add('error');
+      statusEl.textContent = 'Hay chon mot dia diem truoc khi chi duong.';
+      return;
+    }
+
+    routeButton.disabled = true;
+    routeSummaryEl.textContent = '';
+    statusEl.classList.remove('error');
+    statusEl.textContent = 'Dang tinh duong di...';
+
+    try {
+      const start = await getMyLocation();
+      const end = selectedLocationPosition;
+      const url = 'https://router.project-osrm.org/route/v1/driving/' +
+              start[1] + ',' + start[0] + ';' + end[1] + ',' + end[0] +
+              '?overview=full&geometries=geojson';
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (!response.ok || !data.routes || !data.routes.length) {
+        throw new Error('Route not found.');
+      }
+
+      const route = data.routes[0];
+      const latLngs = route.geometry.coordinates.map((coordinate) => [coordinate[1], coordinate[0]]);
+      clearRoute();
+      routeLayer = L.polyline(latLngs, {
+        color: '#2563eb',
+        weight: 5,
+        opacity: 0.86
+      }).addTo(map);
+      map.fitBounds(routeLayer.getBounds(), {
+        padding: [42, 42]
+      });
+      routeSummaryEl.textContent = 'Khoang cach: ' + formatDistance(route.distance) +
+              ' - Thoi gian: ' + formatDuration(route.duration);
+      statusEl.classList.remove('error');
+      statusEl.textContent = 'Da hien thi duong di tu vi tri cua toi den dia diem da chon.';
+    } catch (error) {
+      statusEl.classList.add('error');
+      statusEl.textContent = 'Khong the tinh duong di. Hay kiem tra quyen vi tri va ket noi mang.';
+    } finally {
+      routeButton.disabled = !selectedLocationPosition;
+    }
+  }
+
   function renderRepairPlaces() {
     repairListEl.innerHTML = '';
 
@@ -802,6 +924,7 @@
 
   document.getElementById('zoomIn').addEventListener('click', () => map.zoomIn());
   document.getElementById('zoomOut').addEventListener('click', () => map.zoomOut());
+  routeButton.addEventListener('click', showRouteToSelectedLocation);
 
   document.getElementById('locateMe').addEventListener('click', () => {
     requestMyLocation({
