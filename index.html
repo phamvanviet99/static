@@ -133,12 +133,6 @@
       line-height: 1.4;
     }
 
-    .quick-list {
-      display: grid;
-      gap: 10px;
-    }
-
-    .quick-list h2,
     .repair-list h2,
     .location-card h2 {
       margin: 0;
@@ -149,26 +143,6 @@
     .repair-list {
       display: grid;
       gap: 10px;
-    }
-
-    .place-button {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 12px;
-      align-items: center;
-      width: 100%;
-      min-height: 58px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 10px 12px;
-      color: var(--text);
-      background: #ffffff;
-      text-align: left;
-    }
-
-    .place-button:hover {
-      border-color: rgba(15, 118, 110, 0.45);
-      background: #f0fdfa;
     }
 
     .repair-button {
@@ -197,15 +171,6 @@
       align-items: center;
     }
 
-    .place-name {
-      display: block;
-      overflow: hidden;
-      font-size: 14px;
-      font-weight: 700;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
     .repair-name {
       display: block;
       overflow: hidden;
@@ -213,13 +178,6 @@
       font-weight: 700;
       text-overflow: ellipsis;
       white-space: nowrap;
-    }
-
-    .place-meta {
-      display: block;
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: 12px;
     }
 
     .repair-address {
@@ -242,11 +200,6 @@
     .repair-phone:hover {
       color: var(--accent-strong);
       text-decoration: underline;
-    }
-
-    .place-pin {
-      color: var(--accent);
-      font-size: 18px;
     }
 
     .repair-pin {
@@ -513,10 +466,6 @@
         font-size: 22px;
       }
 
-      .quick-list {
-        grid-template-columns: 1fr;
-      }
-
       .location-card {
         margin-top: 0;
       }
@@ -538,7 +487,7 @@
   <aside class="sidebar" aria-label="Bang dieu khien ban do">
     <section class="brand">
       <h1>Ban do dia diem</h1>
-      <p>Tim kiem vi tri, xem nhanh cac dia diem mau va phong to khu vuc tren ban do.</p>
+      <p>Tim kiem vi tri, xem cac diem sua xe va quay nhanh ve vi tri cua ban.</p>
     </section>
 
     <section class="search-box" aria-label="Tim kiem dia diem">
@@ -549,30 +498,6 @@
       <div id="status" class="status">Ban do dang hien thi trung tam Ha Noi.</div>
     </section>
 
-    <section class="quick-list" aria-label="Dia diem noi bat">
-      <h2>Dia diem noi bat</h2>
-      <button class="place-button" type="button" data-lat="21.0285" data-lng="105.8542" data-zoom="14">
-                <span>
-                    <span class="place-name">Hoan Kiem, Ha Noi</span>
-                    <span class="place-meta">Trung tam thu do</span>
-                </span>
-        <span class="place-pin" aria-hidden="true">●</span>
-      </button>
-      <button class="place-button" type="button" data-lat="10.7769" data-lng="106.7009" data-zoom="14">
-                <span>
-                    <span class="place-name">Quan 1, TP Ho Chi Minh</span>
-                    <span class="place-meta">Khu trung tam thanh pho</span>
-                </span>
-        <span class="place-pin" aria-hidden="true">●</span>
-      </button>
-      <button class="place-button" type="button" data-lat="16.0471" data-lng="108.2068" data-zoom="13">
-                <span>
-                    <span class="place-name">Da Nang</span>
-                    <span class="place-meta">Thanh pho ven bien mien Trung</span>
-                </span>
-        <span class="place-pin" aria-hidden="true">●</span>
-      </button>
-    </section>
 
     <section class="repair-list" aria-label="Dia diem sua xe">
       <h2>Sua xe gan day</h2>
@@ -581,7 +506,7 @@
 
     <section class="location-card" aria-label="Toa do hien tai">
       <h2>Vi tri dang chon</h2>
-      <p id="coordinates" class="coordinates">Lat: 21.02850<br>Lng: 105.85420</p>
+      <p id="coordinates" class="coordinates">Chua chon vi tri.</p>
     </section>
   </aside>
 
@@ -637,7 +562,7 @@
     iconAnchor: [14, 28],
     popupAnchor: [0, -26]
   });
-  const marker = L.marker(initialPosition, {icon: selectedLocationIcon}).addTo(map);
+  let selectedLocationMarker = null;
   const myLocationIcon = L.divIcon({
     className: '',
     html: '<span class="my-location-marker" aria-hidden="true"></span>',
@@ -699,8 +624,14 @@
 
   function updateSelectedLocation(lat, lng, label) {
     const nextPosition = [lat, lng];
-    marker.setLatLng(nextPosition);
-    marker.bindPopup(
+
+    if (!selectedLocationMarker) {
+      selectedLocationMarker = L.marker(nextPosition, {icon: selectedLocationIcon}).addTo(map);
+    } else {
+      selectedLocationMarker.setLatLng(nextPosition);
+    }
+
+    selectedLocationMarker.bindPopup(
             '<p class="popup-title">' + label + '</p>' +
             '<p class="popup-text">Lat: ' + lat.toFixed(5) + '<br>Lng: ' + lng.toFixed(5) + '</p>'
     ).openPopup();
@@ -721,7 +652,9 @@
     if (!myLocationMarker) {
       myLocationMarker = L.marker(nextPosition, {icon: myLocationIcon})
               .addTo(map)
-              .bindPopup('<p class="popup-title">Vi tri cua toi</p>');
+              .bindPopup('<p class="popup-title">Vi tri cua toi</p>', {
+                autoPan: false
+              });
     } else {
       myLocationMarker.setLatLng(nextPosition);
     }
@@ -729,6 +662,19 @@
     if (openPopup) {
       myLocationMarker.openPopup();
     }
+  }
+
+  function centerMyLocation() {
+    if (!myLocationPosition) {
+      return;
+    }
+
+    map.setView(myLocationPosition, 15);
+    setTimeout(() => {
+      map.panTo(myLocationPosition, {
+        animate: false
+      });
+    }, 0);
   }
 
   function handleMyLocationError(showError) {
@@ -754,9 +700,10 @@
     }
 
     if (shouldPan && myLocationPosition) {
-      map.setView(myLocationPosition, 15);
+      centerMyLocation();
       if (myLocationMarker && shouldOpenPopup) {
         myLocationMarker.openPopup();
+        centerMyLocation();
       }
       statusEl.classList.remove('error');
       statusEl.textContent = 'Dang hien thi vi tri cua toi.';
@@ -771,7 +718,7 @@
     navigator.geolocation.getCurrentPosition((position) => {
       updateMyLocation(position.coords.latitude, position.coords.longitude, shouldOpenPopup);
       if (shouldPan) {
-        map.setView(myLocationPosition, 15);
+        centerMyLocation();
       }
       if (showError) {
         statusEl.classList.remove('error');
@@ -845,16 +792,6 @@
     });
   }
 
-  document.querySelectorAll('.place-button').forEach((button) => {
-    button.addEventListener('click', () => {
-      const lat = Number(button.dataset.lat);
-      const lng = Number(button.dataset.lng);
-      const zoom = Number(button.dataset.zoom);
-      const label = button.querySelector('.place-name').textContent;
-      moveToLocation(lat, lng, zoom, label);
-    });
-  });
-
   map.on('click', (event) => {
     const lat = event.latlng.lat;
     const lng = event.latlng.lng;
@@ -915,7 +852,6 @@
     }
   });
 
-  updateSelectedLocation(initialPosition[0], initialPosition[1], 'Hoan Kiem, Ha Noi');
   renderRepairPlaces();
   requestMyLocation({
     pan: false,
