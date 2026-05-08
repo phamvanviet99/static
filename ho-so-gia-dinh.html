@@ -12,6 +12,7 @@
       --muted: #64748b;
       --line: #d8e0ea;
       --accent: #0f766e;
+      --accent-soft: #ecfdf5;
       --shadow: 0 14px 40px rgba(15, 23, 42, 0.1);
       font-family: Arial, Helvetica, sans-serif;
     }
@@ -28,9 +29,9 @@
     }
 
     main {
-      width: min(920px, 92vw);
+      width: min(1120px, 92vw);
       margin: 0 auto;
-      padding: 36px 0;
+      padding: 32px 0;
     }
 
     a {
@@ -43,40 +44,251 @@
       text-decoration: underline;
     }
 
-    section {
+    header {
       display: grid;
-      gap: 12px;
-      margin-top: 24px;
-      padding: 24px;
+      gap: 8px;
+      margin: 24px 0;
+    }
+
+    h1,
+    h2,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 30px;
+      line-height: 1.25;
+    }
+
+    .subtext {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .member-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .password-card {
+      display: grid;
+      gap: 14px;
+      max-width: 520px;
+      padding: 22px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: var(--panel);
       box-shadow: var(--shadow);
     }
 
-    h1,
-    p {
-      margin: 0;
+    label {
+      display: grid;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 700;
     }
 
-    h1 {
-      font-size: 28px;
-      line-height: 1.25;
+    input {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--text);
+      background: #ffffff;
+      font: inherit;
+      outline: none;
     }
 
-    p {
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14);
+    }
+
+    button {
+      min-height: 42px;
+      border: 0;
+      border-radius: 8px;
+      padding: 0 14px;
+      color: #ffffff;
+      background: var(--accent);
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .status {
+      color: #b42318;
+      line-height: 1.45;
+    }
+
+    .member-card {
+      display: grid;
+      gap: 14px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .member-card h2 {
+      font-size: 20px;
+      line-height: 1.3;
+    }
+
+    .note {
       color: var(--muted);
-      line-height: 1.6;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+      gap: 8px;
+    }
+
+    .photo-grid a {
+      display: block;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--accent-soft);
+    }
+
+    .photo-grid img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+    }
+
+    .empty-photos {
+      padding: 18px;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      color: var(--muted);
+      background: #ffffff;
+      text-align: center;
+    }
+
+    .hidden {
+      display: none !important;
     }
   </style>
 </head>
 <body>
 <main>
   <a href="index.html">Quay lai danh sach</a>
-  <section>
+
+  <header>
     <h1>Ho so gia dinh</h1>
-    <p>Trang nay dang san sang de bo sung thong tin ho so gia dinh.</p>
+    <p class="subtext">Trang tinh hien thi anh va thong tin cac thanh vien.</p>
+  </header>
+
+  <section id="passwordCard" class="password-card" aria-label="Nhap mat khau">
+    <h2>Nhap mat khau</h2>
+    <p class="subtext">Nhap dung mat khau de xem ho so gia dinh.</p>
+    <form id="passwordForm">
+      <label>
+        Mat khau
+        <input id="passwordInput" type="password" autocomplete="current-password" required>
+      </label>
+      <button type="submit">Mo ho so</button>
+    </form>
+    <p id="passwordStatus" class="status"></p>
   </section>
+
+  <section id="memberList" class="member-list hidden" aria-label="Danh sach thanh vien"></section>
 </main>
+
+<script>
+  const APP_PASSWORD = '010119';
+  const MEMBERS = [
+    {
+      name: 'Ten thanh vien',
+      note: 'Ghi chu thong tin thanh vien.',
+      photos: [
+        'images/family/khao_sat.png',
+        'images/family/example-2.jpg'
+      ]
+    }
+  ];
+
+  const passwordCard = document.getElementById('passwordCard');
+  const passwordForm = document.getElementById('passwordForm');
+  const passwordInput = document.getElementById('passwordInput');
+  const passwordStatus = document.getElementById('passwordStatus');
+  const memberList = document.getElementById('memberList');
+
+  function renderMembers() {
+    memberList.innerHTML = '';
+
+    MEMBERS.forEach((member) => {
+      const card = document.createElement('article');
+      card.className = 'member-card';
+
+      const title = document.createElement('h2');
+      title.textContent = member.name;
+
+      const note = document.createElement('p');
+      note.className = 'note';
+      note.textContent = member.note || '';
+
+      const photoGrid = document.createElement('div');
+      photoGrid.className = 'photo-grid';
+
+      if (member.photos && member.photos.length) {
+        member.photos.forEach((photo) => {
+          const link = document.createElement('a');
+          link.href = photo;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+
+          const image = document.createElement('img');
+          image.src = photo;
+          image.alt = member.name;
+          image.loading = 'lazy';
+
+          link.appendChild(image);
+          photoGrid.appendChild(link);
+        });
+      } else {
+        const empty = document.createElement('p');
+        empty.className = 'empty-photos';
+        empty.textContent = 'Chua co anh.';
+        photoGrid.appendChild(empty);
+      }
+
+      card.appendChild(title);
+      card.appendChild(note);
+      card.appendChild(photoGrid);
+      memberList.appendChild(card);
+    });
+  }
+
+  function unlockPage() {
+    passwordCard.classList.add('hidden');
+    memberList.classList.remove('hidden');
+    renderMembers();
+  }
+
+  passwordForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+
+    if (passwordInput.value !== APP_PASSWORD) {
+      passwordStatus.textContent = 'Mat khau khong dung.';
+      passwordInput.select();
+      return;
+    }
+
+    passwordInput.value = '';
+    passwordStatus.textContent = '';
+    unlockPage();
+  });
+</script>
 </body>
 </html>
