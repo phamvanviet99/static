@@ -1,0 +1,987 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sua chua xe</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIINfQGjmK8ftRToQ6iDhu5JtBHo7oOfUII="
+        crossorigin="">
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --text: #172033;
+      --muted: #64748b;
+      --line: #d8e0ea;
+      --accent: #0f766e;
+      --accent-strong: #0b5f59;
+      --danger: #b42318;
+      --shadow: 0 14px 40px rgba(15, 23, 42, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background: var(--bg);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .app-shell {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 24px;
+      background: var(--panel);
+      border-right: 1px solid var(--line);
+      overflow-y: auto;
+      z-index: 2;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .brand p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .search-box {
+      display: grid;
+      gap: 10px;
+    }
+
+    .search-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 44px;
+      gap: 8px;
+    }
+
+    input {
+      width: 100%;
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 12px;
+      color: var(--text);
+      font-size: 15px;
+      outline: none;
+      background: #ffffff;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14);
+    }
+
+    button {
+      min-height: 44px;
+      border: 0;
+      border-radius: 8px;
+      color: #ffffff;
+      background: var(--accent);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: var(--accent-strong);
+    }
+
+    .icon-button {
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+    }
+
+    .status {
+      min-height: 20px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .repair-list h2,
+    .location-card h2 {
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    .repair-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .repair-button {
+      display: grid;
+      gap: 8px;
+      width: 100%;
+      min-height: 82px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      color: var(--text);
+      background: #ffffff;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .repair-button:hover {
+      border-color: rgba(180, 35, 24, 0.35);
+      background: #fff7ed;
+    }
+
+    .repair-topline {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .repair-name {
+      display: block;
+      overflow: hidden;
+      font-size: 14px;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .repair-address {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .repair-phone {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .repair-phone:hover {
+      color: var(--accent-strong);
+      text-decoration: underline;
+    }
+
+    .repair-pin {
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      color: #ffffff;
+      background: #b42318;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .location-card {
+      display: grid;
+      gap: 12px;
+      margin-top: auto;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fafc;
+    }
+
+    .coordinates {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .route-button {
+      width: 100%;
+      min-height: 40px;
+    }
+
+    .route-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .route-summary {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .map-wrap {
+      position: relative;
+      min-width: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    #map {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    .leaflet-container {
+      overflow: hidden;
+      background: #dce8ef;
+      outline: 0;
+      touch-action: pan-x pan-y;
+    }
+
+    .leaflet-pane,
+    .leaflet-map-pane,
+    .leaflet-tile,
+    .leaflet-marker-icon,
+    .leaflet-marker-shadow,
+    .leaflet-tile-container,
+    .leaflet-pane > svg,
+    .leaflet-pane > canvas,
+    .leaflet-zoom-box,
+    .leaflet-image-layer,
+    .leaflet-layer {
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+
+    .leaflet-tile,
+    .leaflet-marker-icon,
+    .leaflet-marker-shadow {
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .leaflet-container img {
+      max-width: none;
+      max-height: none;
+    }
+
+    .leaflet-tile {
+      width: 256px;
+      height: 256px;
+      filter: inherit;
+      visibility: inherit;
+      border: 0;
+    }
+
+    .leaflet-tile-pane {
+      z-index: 200;
+    }
+
+    .leaflet-overlay-pane {
+      z-index: 400;
+    }
+
+    .leaflet-shadow-pane {
+      z-index: 500;
+    }
+
+    .leaflet-marker-pane {
+      z-index: 600;
+    }
+
+    .leaflet-tooltip-pane {
+      z-index: 650;
+    }
+
+    .leaflet-popup-pane {
+      z-index: 700;
+    }
+
+    .leaflet-control {
+      position: relative;
+      z-index: 800;
+      pointer-events: auto;
+    }
+
+    .leaflet-top,
+    .leaflet-bottom {
+      position: absolute;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .leaflet-top {
+      top: 0;
+    }
+
+    .leaflet-right {
+      right: 0;
+    }
+
+    .leaflet-bottom {
+      bottom: 0;
+    }
+
+    .leaflet-left {
+      left: 0;
+    }
+
+    .selected-location-marker {
+      position: relative;
+      display: block;
+      width: 28px;
+      height: 28px;
+      border: 3px solid #ffffff;
+      border-radius: 999px 999px 999px 0;
+      background: var(--accent);
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.28);
+      transform: rotate(-45deg);
+    }
+
+    .selected-location-marker::after {
+      position: absolute;
+      inset: 7px;
+      border-radius: 999px;
+      background: #ffffff;
+      content: "";
+    }
+
+    .my-location-marker {
+      position: relative;
+      display: block;
+      width: 22px;
+      height: 22px;
+      border: 3px solid #ffffff;
+      border-radius: 999px;
+      background: #2563eb;
+      box-shadow: 0 0 0 8px rgba(37, 99, 235, 0.18), 0 8px 22px rgba(15, 23, 42, 0.28);
+    }
+
+    .my-location-marker::after {
+      position: absolute;
+      inset: 5px;
+      border-radius: 999px;
+      background: #ffffff;
+      content: "";
+    }
+
+    .repair-map-marker {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border: 2px solid #ffffff;
+      border-radius: 999px;
+      color: #ffffff;
+      background: #b42318;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.22);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .map-toolbar {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      z-index: 3;
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+      border: 1px solid rgba(216, 224, 234, 0.9);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: var(--shadow);
+    }
+
+    .map-toolbar button {
+      width: 42px;
+      min-height: 42px;
+      color: var(--text);
+      background: #ffffff;
+      border: 1px solid var(--line);
+      font-size: 20px;
+    }
+
+    .map-toolbar button:hover {
+      color: #ffffff;
+      background: var(--accent);
+    }
+
+    .leaflet-popup-content {
+      min-width: 190px;
+      margin: 12px;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    .popup-title {
+      margin: 0 0 4px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .popup-text {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .error {
+      color: var(--danger);
+    }
+
+    @media (max-width: 820px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(0, auto) minmax(420px, 1fr);
+        height: 100vh;
+        overflow-y: auto;
+      }
+
+      .sidebar {
+        gap: 16px;
+        padding: 18px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .brand h1 {
+        font-size: 22px;
+      }
+
+      .location-card {
+        margin-top: 0;
+      }
+
+      .map-wrap {
+        min-height: 420px;
+        height: 58vh;
+      }
+
+      .map-toolbar {
+        top: 12px;
+        right: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+<main class="app-shell">
+  <aside class="sidebar" aria-label="Bang dieu khien ban do">
+    <section class="brand">
+      <h1>Sua chua xe</h1>
+      <p>Tim kiem vi tri, xem cac diem sua xe va quay nhanh ve vi tri cua ban.</p>
+    </section>
+
+    <section class="search-box" aria-label="Tim kiem dia diem">
+      <div class="search-row">
+        <input id="searchInput" type="search" placeholder="Nhap dia diem..." autocomplete="off">
+        <button id="searchButton" class="icon-button" type="button" title="Tim kiem" aria-label="Tim kiem">⌕</button>
+      </div>
+      <div id="status" class="status">Ban do dang hien thi trung tam Ha Noi.</div>
+    </section>
+
+
+    <section class="repair-list" aria-label="Dia diem sua xe">
+      <h2>Sua xe gan day</h2>
+      <div id="repairList"></div>
+    </section>
+
+    <section class="location-card" aria-label="Toa do hien tai">
+      <h2>Vi tri dang chon</h2>
+      <p id="coordinates" class="coordinates">Chua chon vi tri.</p>
+      <button id="routeButton" class="route-button" type="button" disabled>Chi duong</button>
+      <p id="routeSummary" class="route-summary"></p>
+    </section>
+  </aside>
+
+  <section class="map-wrap" aria-label="Ban do">
+    <div id="map"></div>
+    <div class="map-toolbar" aria-label="Cong cu ban do">
+      <button id="zoomIn" type="button" title="Phong to" aria-label="Phong to">+</button>
+      <button id="zoomOut" type="button" title="Thu nho" aria-label="Thu nho">−</button>
+      <button id="locateMe" type="button" title="Vi tri cua toi" aria-label="Vi tri cua toi">⌖</button>
+    </div>
+  </section>
+</main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+<script>
+  const initialPosition = [21.0285, 105.8542];
+  const map = L.map('map', {
+    zoomControl: false
+  }).setView(initialPosition, 13);
+
+  const streetLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    crossOrigin: true,
+    detectRetina: true,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  streetLayer.on('tileerror', (event) => {
+    const tile = event.tile;
+    const coords = event.coords;
+    tile.src = 'https://basemaps.cartocdn.com/rastertiles/voyager/' +
+            coords.z + '/' + coords.x + '/' + coords.y + '.png';
+  });
+
+  window.addEventListener('load', () => {
+    setTimeout(() => map.invalidateSize(), 100);
+  });
+
+  window.addEventListener('resize', () => {
+    map.invalidateSize();
+  });
+
+  const statusEl = document.getElementById('status');
+  const coordinatesEl = document.getElementById('coordinates');
+  const searchInput = document.getElementById('searchInput');
+  const repairListEl = document.getElementById('repairList');
+  const routeButton = document.getElementById('routeButton');
+  const routeSummaryEl = document.getElementById('routeSummary');
+  const selectedLocationIcon = L.divIcon({
+    className: '',
+    html: '<span class="selected-location-marker" aria-hidden="true"></span>',
+    iconSize: [28, 28],
+    iconAnchor: [14, 28],
+    popupAnchor: [0, -26]
+  });
+  let selectedLocationMarker = null;
+  let selectedLocationPosition = null;
+  let routeLayer = null;
+  const myLocationIcon = L.divIcon({
+    className: '',
+    html: '<span class="my-location-marker" aria-hidden="true"></span>',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+    popupAnchor: [0, -12]
+  });
+  let myLocationMarker = null;
+  let myLocationPosition = null;
+  let myLocationWatchId = null;
+  const repairIcon = L.divIcon({
+    className: '',
+    html: '<span class="repair-map-marker">S</span>',
+    iconSize: [30, 30],
+    iconAnchor: [15, 30],
+    popupAnchor: [0, -28]
+  });
+
+  const REPAIR_PLACES = [
+    {
+      name: 'Sua xe Minh Anh',
+      address: 'Gan pho Hang Bai, Hoan Kiem',
+      phone: '0901 234 567',
+      lat: 21.02470,
+      lng: 105.85210
+    },
+    {
+      name: 'Cuu ho xe may 24/7',
+      address: 'Khu vuc Ba Dinh, Ha Noi',
+      phone: '0988 111 222',
+      lat: 21.03580,
+      lng: 105.83420
+    },
+    {
+      name: 'Sua xe Quang Trung',
+      address: 'Gan pho Hue, Hai Ba Trung',
+      phone: '0912 345 678',
+      lat: 21.01490,
+      lng: 105.84970
+    },
+    {
+      name: 'Vam lop - thay dau Hoan Kiem',
+      address: 'Gan Tran Hung Dao, Hoan Kiem',
+      phone: '0966 789 123',
+      lat: 21.02060,
+      lng: 105.85810
+    }
+  ];
+
+  function formatPhoneHref(phone) {
+    return 'tel:' + phone.replace(/[^0-9+]/g, '');
+  }
+
+  function buildRepairPopup(place) {
+    return '<p class="popup-title">' + place.name + '</p>' +
+            '<p class="popup-text">' + place.address + '<br>' +
+            '<a class="repair-phone" href="' + formatPhoneHref(place.phone) + '">' + place.phone + '</a></p>';
+  }
+
+  function updateSelectedLocation(lat, lng, label) {
+    const nextPosition = [lat, lng];
+    selectedLocationPosition = nextPosition;
+
+    if (!selectedLocationMarker) {
+      selectedLocationMarker = L.marker(nextPosition, {icon: selectedLocationIcon}).addTo(map);
+    } else {
+      selectedLocationMarker.setLatLng(nextPosition);
+    }
+
+    selectedLocationMarker.bindPopup(
+            '<p class="popup-title">' + label + '</p>' +
+            '<p class="popup-text">Lat: ' + lat.toFixed(5) + '<br>Lng: ' + lng.toFixed(5) + '</p>'
+    ).openPopup();
+    coordinatesEl.innerHTML = 'Lat: ' + lat.toFixed(5) + '<br>Lng: ' + lng.toFixed(5);
+    routeButton.disabled = false;
+    clearRoute();
+  }
+
+  function clearRoute() {
+    if (routeLayer) {
+      map.removeLayer(routeLayer);
+      routeLayer = null;
+    }
+    routeSummaryEl.textContent = '';
+  }
+
+  function moveToLocation(lat, lng, zoom, label) {
+    map.setView([lat, lng], zoom);
+    updateSelectedLocation(lat, lng, label);
+    statusEl.classList.remove('error');
+    statusEl.textContent = 'Dang hien thi: ' + label + '.';
+  }
+
+  function updateMyLocation(lat, lng, openPopup) {
+    const nextPosition = [lat, lng];
+    myLocationPosition = nextPosition;
+
+    if (!myLocationMarker) {
+      myLocationMarker = L.marker(nextPosition, {icon: myLocationIcon})
+              .addTo(map)
+              .bindPopup('<p class="popup-title">Vi tri cua toi</p>', {
+                autoPan: false
+              });
+    } else {
+      myLocationMarker.setLatLng(nextPosition);
+    }
+
+    if (openPopup) {
+      myLocationMarker.openPopup();
+    }
+  }
+
+  function getMyLocation() {
+    return new Promise((resolve, reject) => {
+      if (myLocationPosition) {
+        resolve(myLocationPosition);
+        return;
+      }
+
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation is not supported.'));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition((position) => {
+        updateMyLocation(position.coords.latitude, position.coords.longitude, false);
+        resolve(myLocationPosition);
+      }, reject, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 30000
+      });
+    });
+  }
+
+  function centerMyLocation() {
+    if (!myLocationPosition) {
+      return;
+    }
+
+    map.setView(myLocationPosition, 15);
+    setTimeout(() => {
+      map.panTo(myLocationPosition, {
+        animate: false
+      });
+    }, 0);
+  }
+
+  function handleMyLocationError(showError) {
+    if (!showError) {
+      return;
+    }
+
+    statusEl.classList.add('error');
+    statusEl.textContent = 'Khong the lay vi tri. Hay kiem tra quyen truy cap vi tri cua trinh duyet.';
+  }
+
+  function requestMyLocation(options) {
+    const shouldPan = options && options.pan;
+    const shouldOpenPopup = options && options.openPopup;
+    const showError = !options || options.showError !== false;
+
+    if (!navigator.geolocation) {
+      if (showError) {
+        statusEl.classList.add('error');
+        statusEl.textContent = 'Trinh duyet khong ho tro lay vi tri hien tai.';
+      }
+      return;
+    }
+
+    if (shouldPan && myLocationPosition) {
+      centerMyLocation();
+      if (myLocationMarker && shouldOpenPopup) {
+        myLocationMarker.openPopup();
+        centerMyLocation();
+      }
+      statusEl.classList.remove('error');
+      statusEl.textContent = 'Dang hien thi vi tri cua toi.';
+      return;
+    }
+
+    if (showError) {
+      statusEl.classList.remove('error');
+      statusEl.textContent = 'Dang lay vi tri hien tai...';
+    }
+
+    navigator.geolocation.getCurrentPosition((position) => {
+      updateMyLocation(position.coords.latitude, position.coords.longitude, shouldOpenPopup);
+      if (shouldPan) {
+        centerMyLocation();
+      }
+      if (showError) {
+        statusEl.classList.remove('error');
+        statusEl.textContent = 'Dang hien thi vi tri cua toi.';
+      }
+    }, () => handleMyLocationError(showError), {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 30000
+    });
+  }
+
+  function startMyLocationWatch() {
+    if (!navigator.geolocation || myLocationWatchId !== null) {
+      return;
+    }
+
+    myLocationWatchId = navigator.geolocation.watchPosition((position) => {
+      updateMyLocation(position.coords.latitude, position.coords.longitude, false);
+    }, () => {
+      myLocationWatchId = null;
+    }, {
+      enableHighAccuracy: true,
+      maximumAge: 15000,
+      timeout: 20000
+    });
+  }
+
+  function moveToRepairPlace(place) {
+    map.setView([place.lat, place.lng], 16);
+    updateSelectedLocation(place.lat, place.lng, place.name);
+    statusEl.classList.remove('error');
+    statusEl.textContent = place.name + ' - SDT: ' + place.phone + '.';
+  }
+
+  function formatDistance(meters) {
+    if (meters >= 1000) {
+      return (meters / 1000).toFixed(1) + ' km';
+    }
+    return Math.round(meters) + ' m';
+  }
+
+  function formatDuration(seconds) {
+    const minutes = Math.max(1, Math.round(seconds / 60));
+    if (minutes >= 60) {
+      const hours = Math.floor(minutes / 60);
+      const restMinutes = minutes % 60;
+      return hours + ' gio ' + restMinutes + ' phut';
+    }
+    return minutes + ' phut';
+  }
+
+  async function showRouteToSelectedLocation() {
+    if (!selectedLocationPosition) {
+      statusEl.classList.add('error');
+      statusEl.textContent = 'Hay chon mot dia diem truoc khi chi duong.';
+      return;
+    }
+
+    routeButton.disabled = true;
+    routeSummaryEl.textContent = '';
+    statusEl.classList.remove('error');
+    statusEl.textContent = 'Dang tinh duong di...';
+
+    try {
+      const start = await getMyLocation();
+      const end = selectedLocationPosition;
+      const url = 'https://router.project-osrm.org/route/v1/driving/' +
+              start[1] + ',' + start[0] + ';' + end[1] + ',' + end[0] +
+              '?overview=full&geometries=geojson';
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (!response.ok || !data.routes || !data.routes.length) {
+        throw new Error('Route not found.');
+      }
+
+      const route = data.routes[0];
+      const latLngs = route.geometry.coordinates.map((coordinate) => [coordinate[1], coordinate[0]]);
+      clearRoute();
+      routeLayer = L.polyline(latLngs, {
+        color: '#2563eb',
+        weight: 5,
+        opacity: 0.86
+      }).addTo(map);
+      map.fitBounds(routeLayer.getBounds(), {
+        padding: [42, 42]
+      });
+      routeSummaryEl.textContent = 'Khoang cach: ' + formatDistance(route.distance) +
+              ' - Thoi gian: ' + formatDuration(route.duration);
+      statusEl.classList.remove('error');
+      statusEl.textContent = 'Da hien thi duong di tu vi tri cua toi den dia diem da chon.';
+    } catch (error) {
+      statusEl.classList.add('error');
+      statusEl.textContent = 'Khong the tinh duong di. Hay kiem tra quyen vi tri va ket noi mang.';
+    } finally {
+      routeButton.disabled = !selectedLocationPosition;
+    }
+  }
+
+  function renderRepairPlaces() {
+    repairListEl.innerHTML = '';
+
+    REPAIR_PLACES.forEach((place) => {
+      const item = document.createElement('div');
+      item.className = 'repair-button';
+      item.role = 'button';
+      item.tabIndex = 0;
+      item.innerHTML =
+              '<span class="repair-topline">' +
+              '<span class="repair-name">' + place.name + '</span>' +
+              '<span class="repair-pin" aria-hidden="true">S</span>' +
+              '</span>' +
+              '<span class="repair-address">' + place.address + '</span>' +
+              '<a class="repair-phone" href="' + formatPhoneHref(place.phone) + '">' + place.phone + '</a>';
+
+      item.addEventListener('click', (event) => {
+        if (event.target.closest('a')) {
+          return;
+        }
+        moveToRepairPlace(place);
+      });
+
+      item.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          moveToRepairPlace(place);
+        }
+      });
+
+      repairListEl.appendChild(item);
+
+      L.marker([place.lat, place.lng], {icon: repairIcon})
+              .addTo(map)
+              .bindPopup(buildRepairPopup(place));
+    });
+  }
+
+  map.on('click', (event) => {
+    const lat = event.latlng.lat;
+    const lng = event.latlng.lng;
+    updateSelectedLocation(lat, lng, 'Vi tri da chon');
+    statusEl.classList.remove('error');
+    statusEl.textContent = 'Da cap nhat vi tri theo diem ban bam tren ban do.';
+  });
+
+  document.getElementById('zoomIn').addEventListener('click', () => map.zoomIn());
+  document.getElementById('zoomOut').addEventListener('click', () => map.zoomOut());
+  routeButton.addEventListener('click', showRouteToSelectedLocation);
+
+  document.getElementById('locateMe').addEventListener('click', () => {
+    requestMyLocation({
+      pan: true,
+      openPopup: true,
+      showError: true
+    });
+    startMyLocationWatch();
+  });
+
+  async function searchLocation() {
+    const query = searchInput.value.trim();
+    if (!query) {
+      statusEl.classList.add('error');
+      statusEl.textContent = 'Vui long nhap dia diem can tim.';
+      return;
+    }
+
+    statusEl.classList.remove('error');
+    statusEl.textContent = 'Dang tim kiem dia diem...';
+
+    try {
+      const response = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(query), {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+      const results = await response.json();
+
+      if (!results.length) {
+        statusEl.classList.add('error');
+        statusEl.textContent = 'Khong tim thay dia diem phu hop.';
+        return;
+      }
+
+      const result = results[0];
+      moveToLocation(Number(result.lat), Number(result.lon), 15, result.display_name);
+    } catch (error) {
+      statusEl.classList.add('error');
+      statusEl.textContent = 'Tim kiem that bai. Hay thu lai sau.';
+    }
+  }
+
+  document.getElementById('searchButton').addEventListener('click', searchLocation);
+  searchInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') {
+      searchLocation();
+    }
+  });
+
+  renderRepairPlaces();
+  requestMyLocation({
+    pan: false,
+    openPopup: false,
+    showError: false
+  });
+  startMyLocationWatch();
+</script>
+</body>
+</html>
